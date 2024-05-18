@@ -1,10 +1,17 @@
 #include "TCPEchoServer.h"
-
+#include "signal.h"
 void ProcessMain(int servSock, int);         /* Main program of process */
+
+int servSock;                    /* Socket descriptor for server*/
+void my_handler(int nsig) {
+  if (servSock != -1) {
+    close(servSock);
+  }
+  exit(0);
+}
 
 int main(int argc, char *argv[])
 {
-    int servSock;                    /* Socket descriptor for server*/
     unsigned short echoServPort;     /* Server port */
     pid_t processID;                 /* Process ID */
     unsigned int processLimit;       /* Number of child processes to create */
