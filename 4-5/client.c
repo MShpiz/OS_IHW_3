@@ -35,10 +35,17 @@ void killChildren() {
   exit(0);
 }
 
-
+int sock = -1;
+void my_handler(int nsig) {
+  if (sock != -1) {
+    killChildren();
+    close(sock);
+  }
+  exit(0);
+}
 
 int main(int argc, char *argv[]) {
-  int sock;                        /* Socket descriptor */
+	(void)signal(SIGINT, my_handler);
   struct sockaddr_in echoServAddr; /* Echo server address */
   unsigned short echoServPort;     /* Echo server port */
   char *servIP;                    /* Server IP address (dotted quad) */
