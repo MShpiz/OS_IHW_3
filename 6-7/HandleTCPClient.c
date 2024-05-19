@@ -9,8 +9,8 @@
 void DieWithError(char *errorMessage); /* Error handling function */
 
 
-
-int queue[10];
+int queue_length;
+int queue[1000];
 int last = 0;
 
 char echoBuffer[RCVBUFSIZE]; /* Buffer for echo string */
@@ -21,7 +21,7 @@ void sendQueueRes(int pid, int logSock) {
   sprintf(str, "Client %d came in and waits in line", pid);
   int len = strlen(str);
   printf("log_soket %d\n", logSock);
-  printf("%s %d", str, len);
+  //printf("%s %d", str, len);
   if (send(logSock, str, len, 0) == -1)
     DieWithError("send() Queue sent a different number of bytes than expected");
 }
@@ -44,11 +44,11 @@ void fill_queue(int clntSocket, int logSocket) {
   if ((recvMsgSize = recv(clntSocket, echoBuffer, RCVBUFSIZE, 0)) < 0)
     DieWithError("recv() failed");
   
-  printf("%s\n",echoBuffer);
+  // printf("%s\n",echoBuffer);
   for (size_t i = 0; i < strlen(echoBuffer); i++) {
     if (echoBuffer[i] == '|') {
       tmp[c] = '\0';
-      if (last < 10){
+      if (last < queue_length){
         queue[last++] = atoi(tmp); 
         sendQueueRes(queue[last-1], logSocket);
       } else { //выгоняем всех кто не попал в очередь
@@ -72,16 +72,16 @@ void start_work(int pid, int logSock) {
   char str[100];
   sprintf(str, "Hairdresser works on client %d", pid);
   int len = strlen(str);
-  printf("log_soket %d\n", logSock);
-  printf("%s %d", str, len);
+  //printf("log_soket %d\n", logSock);
+  //printf("%s %d", str, len);
   if (send(logSock, str, len, 0) == -1)
     DieWithError("send() Queue sent a different number of bytes than expected");
 }
 
 
-void HandleTCPClient(int clntSocket, int workTime, int logSocket) {
+void HandleTCPClient(int clntSocket, int workTime, int logSocket, int q_len) {
   printf("woke up\n");
-  
+  queue_length = q_len;
   
   /* Receive message from client */
   

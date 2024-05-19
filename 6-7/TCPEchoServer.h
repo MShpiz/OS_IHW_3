@@ -6,6 +6,6 @@
 #include <unistd.h>     /* for close() */
 
 void DieWithError(char *errorMessage);  /* Error handling function */
-void HandleTCPClient(int clntSocket, int, int);   /* TCP client handling function */
+void HandleTCPClient(int clntSocket, int, int, int);   /* TCP client handling function */
 int CreateTCPServerSocket(unsigned short port); /* Create TCP server socket */
 int AcceptTCPConnection(int servSock);  /* Accept TCP connection request */
