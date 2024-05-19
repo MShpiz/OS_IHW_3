@@ -1,51 +1,52 @@
-#include <arpa/inet.h>  /* for sockaddr_in and inet_addr() */
+#include <arpa/inet.h> /* for sockaddr_in and inet_addr() */
+#include <signal.h>
 #include <stdio.h>      /* for printf() and fprintf() */
 #include <stdlib.h>     /* for atoi() and exit() */
 #include <string.h>     /* for memset() */
 #include <sys/socket.h> /* for socket(), connect(), send(), and recv() */
 #include <unistd.h>     /* for close() */
-#include <signal.h>
 
 #define RCVBUFSIZE 32 /* Size of receive buffer */
 
 void DieWithError(char *errorMessage); /* Error handling function */
 char children[RCVBUFSIZE];
 
-char tmp[RCVBUFSIZE]; // оно глобальное, чтобы если пид не целиком попал в буфер он не потерялся
+char tmp[RCVBUFSIZE]; // оно глобальное, чтобы если пид не целиком попал в буфер
+                      // он не потерялся
 int c = 0;
 void killChildren() {
 
   // printf("start killing %s", children);
-    printf("%s", children);
-    for (size_t i = 0; i < strlen(children); i++) {
-      if (children[i] == '|' || children[i] == '-') {
-        tmp[c] = '\0';
-        int pid = atoi(tmp);
-        kill(pid, SIGKILL);
-        if (children[i] == '|'){
-          printf("%d client is done\n", pid);
-        } else {
-          printf("%d client left because queue was full\n", pid);
-        }
-        
+  // printf("%s", children);
+  for (size_t i = 0; i < strlen(children); i++) {
+    if (children[i] == '|' || children[i] == '-') {
+      tmp[c] = '\0';
+      int pid = atoi(tmp);
+      kill(pid, SIGKILL);
+      if (children[i] == '|') {
+        printf("%d client is done\n", pid);
       } else {
-        tmp[c++] = children[i];
+        printf("%d client left because queue was full\n", pid);
       }
+
+    } else {
+      tmp[c++] = children[i];
     }
+  }
   exit(0);
 }
 
 int sock = -1;
 void my_handler(int nsig) {
   if (sock != -1) {
-    killChildren();
+    //killChildren();
     close(sock);
   }
   exit(0);
 }
-
 int main(int argc, char *argv[]) {
-	(void)signal(SIGINT, my_handler);
+  (void)signal(SIGINT, my_handler);
+  /* Socket descriptor */
   struct sockaddr_in echoServAddr; /* Echo server address */
   unsigned short echoServPort;     /* Echo server port */
   char *servIP;                    /* Server IP address (dotted quad) */
@@ -86,32 +87,34 @@ int main(int argc, char *argv[]) {
     DieWithError("connect() failed");
   printf("parent pid %d \n", getpid());
   int child;
-  
+
   for (;;) {
     child = fork();
-    
+
     if (child == 0) {
       printf("client %d came in\n", getpid());
-      for (int j = 0; j < RCVBUFSIZE; j++) {echoBuffer[j] = '\0';}
+      for (int j = 0; j < RCVBUFSIZE; j++) {
+        echoBuffer[j] = '\0';
+      }
       sprintf(echoBuffer, "%d", getpid());
       int l = strlen(echoBuffer);
       echoBuffer[l] = '|';
-      echoBuffer[l+1] = '\0';
+      echoBuffer[l + 1] = '\0';
       echoStringLen = strlen(echoBuffer);
       /* Send the string to the server */
       // printf("send %s %d\n", echoBuffer, echoStringLen);
       if (send(sock, echoBuffer, echoStringLen, 0) == -1)
-        DieWithError("send() sent a different number of bytes than expected");      
+        DieWithError("send() sent a different number of bytes than expected");
 
       exit(0);
-      
+
     } else {
       int child2 = fork();
-      if (child2 == 0){
+      if (child2 == 0) {
         totalBytesRcvd = 0;
         if ((bytesRcvd = recv(sock, children, RCVBUFSIZE - 1, 0)) <= 0)
           DieWithError("recv() failed or connection closed prematurely");
-        totalBytesRcvd += bytesRcvd;  /* Keep tally of total bytes */
+        totalBytesRcvd += bytesRcvd; /* Keep tally of total bytes */
         children[bytesRcvd] = '\0';
         killChildren();
       }

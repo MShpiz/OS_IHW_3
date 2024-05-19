@@ -9,8 +9,8 @@
 void DieWithError(char *errorMessage); /* Error handling function */
 
 
-
-int queue[10];
+int queue_length;
+int queue[1000];
 int last = 0;
 
 char echoBuffer[RCVBUFSIZE]; /* Buffer for echo string */
@@ -21,11 +21,11 @@ void fill_queue(int clntSocket) {
     DieWithError("recv() failed");
   char tmp[RCVBUFSIZE];
   int c = 0;
-  printf("%s\n",echoBuffer);
+  //printf("%s\n",echoBuffer);
   for (size_t i = 0; i < strlen(echoBuffer); i++) {
     if (echoBuffer[i] == '|') {
       tmp[c] = '\0';
-      if (last < 10){
+      if (last < queue_length){
         queue[last++] = atoi(tmp); 
       } else { //выгоняем всех кто не попал в очередь
         printf("queue is full, client %s left\n", tmp);
@@ -44,9 +44,9 @@ void fill_queue(int clntSocket) {
 
 
 
-void HandleTCPClient(int clntSocket, int workTime) {
+void HandleTCPClient(int clntSocket, int workTime, int q_len) {
   printf("woke up\n");
-  
+  queue_length = q_len;
   
   /* Receive message from client */
   
