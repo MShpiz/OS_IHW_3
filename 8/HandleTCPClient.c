@@ -10,8 +10,9 @@ void DieWithError(char *errorMessage); /* Error handling function */
 
 
 
-int queue[10];
+int queue[1000];
 int last = 0;
+int queue_length;
 
 char echoBuffer[RCVBUFSIZE]; /* Buffer for echo string */
 int recvMsgSize;             /* Size of received message */
@@ -44,7 +45,7 @@ int fill_queue(int clntSocket, int logSocket) {
   if ((recvMsgSize = recv(clntSocket, echoBuffer, RCVBUFSIZE, 0)) < 0)
     DieWithError("recv() failed");
   
-  printf("%s\n",echoBuffer);
+  // printf("%s\n",echoBuffer);
   for (size_t i = 0; i < strlen(echoBuffer); i++) {
     if (echoBuffer[i] == '|') {
       tmp[c] = '\0';
@@ -53,7 +54,7 @@ int fill_queue(int clntSocket, int logSocket) {
         close(clntSocket);
         return 0;
       }
-      if (last < 10){
+      if (last < queue_length){
         queue[last++] = atoi(tmp); 
         sendQueueRes(queue[last-1], logSocket);
       } else { //выгоняем всех кто не попал в очередь
@@ -78,16 +79,14 @@ void start_work(int pid, int logSock) {
   char str[100];
   sprintf(str, "Hairdresser works on client %d", pid);
   int len = strlen(str);
-  printf("log_soket %d\n", logSock);
-  printf("%s %d", str, len);
   if (send(logSock, str, len, 0) == -1)
     DieWithError("send() Queue sent a different number of bytes than expected");
 }
 
 
-void HandleTCPClient(int clntSocket, int workTime, int logSocket) {
+void HandleTCPClient(int clntSocket, int workTime, int logSocket, int q_len) {
   printf("woke up\n");
-  
+  queue_length = q_len;
   
   /* Receive message from client */
   
@@ -103,13 +102,13 @@ void HandleTCPClient(int clntSocket, int workTime, int logSocket) {
       
       stop = fill_queue(clntSocket, logSocket);
       if (stop == 0) {
-        printf("client got disconnected");
+        printf("client got disconnected\n");
         exit(0);
       }
       start_work(queue[last-1], logSocket);
       printf("workig with client %d\n", queue[last-1]);
       sleep(workTime);
-      //sprintf(echoBuffer, "%d", queue[last-1]);
+      sprintf(echoBuffer, "%d", queue[last-1]);
       int l = strlen(echoBuffer);
       echoBuffer[l] = '|';
       echoBuffer[l+1] = '\0';

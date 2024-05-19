@@ -1,7 +1,7 @@
 #include "TCPEchoServer.h"
 #include "signal.h"
 
-void ProcessMain(int servSock, int, int);         /* Main program of process */
+void ProcessMain(int servSock, int, int, int);         /* Main program of process */
 
 int servSock;                    /* Socket descriptor for server*/
 void my_handler(int nsig) {
@@ -24,9 +24,9 @@ int main(int argc, char *argv[])
     unsigned short logServPort;     /* Log server port */
     char *servIP;
 
-    if (argc != 5)     /* Test for correct number of arguments */
+    if (argc != 6)     /* Test for correct number of arguments */
     {
-        fprintf(stderr,"Usage:  %s <SERVER PORT> <WORK TIME> <LOG IP> <LOG PORT>\n", argv[0]);
+        fprintf(stderr,"Usage:  %s <SERVER PORT> <WORK TIME> <LOG IP> <LOG PORT> <QUEUE LENGTH>\n", argv[0]);
         exit(1);
     }
 
@@ -35,6 +35,11 @@ int main(int argc, char *argv[])
     int work_time = atoi(argv[2]);
     servIP = argv[3];
     logServPort = atoi(argv[4]);
+    int q_len = atoi(argv[5]);
+    if (q_len > 1000) {
+        printf("Queue too long, must be <= 1000");
+        exit(0);
+    }
     int logsock;
     if ((logsock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
         DieWithError("socket() failed");
@@ -55,12 +60,12 @@ int main(int argc, char *argv[])
         if ((processID = fork()) < 0)
             DieWithError("fork() failed");
         else if (processID == 0)  /* If this is the child process */
-            ProcessMain(servSock, work_time, logsock);
+            ProcessMain(servSock, work_time, logsock, q_len);
 
     exit(0);  /* The children will carry on */
 }
 
-void ProcessMain(int servSock, int work_time, int logsock)
+void ProcessMain(int servSock, int work_time, int logsock, int q_len)
 {
     int clntSock;                  /* Socket descriptor for client connection */
 
@@ -68,6 +73,6 @@ void ProcessMain(int servSock, int work_time, int logsock)
     {
         clntSock = AcceptTCPConnection(servSock);
         printf("with child process: %d\n", (unsigned int) getpid());
-        HandleTCPClient(clntSock, work_time, logsock);
+        HandleTCPClient(clntSock, work_time, logsock, q_len);
     }
 }
